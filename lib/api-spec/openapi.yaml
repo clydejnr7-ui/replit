@@ -1,0 +1,184 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: ReplitReasoner API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: agent
+    description: Agent run operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /agent/runs:
+    post:
+      operationId: startRun
+      tags: [agent]
+      summary: Start a new agent run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentRunInput"
+      responses:
+        "201":
+          description: Run started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRun"
+    get:
+      operationId: listRuns
+      tags: [agent]
+      summary: List all agent runs
+      responses:
+        "200":
+          description: List of runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentRun"
+  /agent/runs/stats:
+    get:
+      operationId: getRunStats
+      tags: [agent]
+      summary: Get aggregate stats across all runs
+      responses:
+        "200":
+          description: Run statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunStats"
+  /agent/runs/{id}:
+    get:
+      operationId: getRun
+      tags: [agent]
+      summary: Get a specific run with its steps
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Run with steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunDetail"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteRun
+      tags: [agent]
+      summary: Delete a run and its steps
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    AgentRunInput:
+      type: object
+      required: [task]
+      properties:
+        task:
+          type: string
+          minLength: 1
+          description: The programming task for the agent to solve
+    AgentRun:
+      type: object
+      required: [id, task, status, createdAt, stepCount]
+      properties:
+        id:
+          type: integer
+        task:
+          type: string
+        status:
+          type: string
+          enum: [running, completed, failed]
+        createdAt:
+          type: string
+        stepCount:
+          type: integer
+    AgentRunDetail:
+      type: object
+      required: [id, task, status, createdAt, steps]
+      properties:
+        id:
+          type: integer
+        task:
+          type: string
+        status:
+          type: string
+          enum: [running, completed, failed]
+        createdAt:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentStep"
+    AgentStep:
+      type: object
+      required: [id, runId, type, content, cycle, createdAt]
+      properties:
+        id:
+          type: integer
+        runId:
+          type: integer
+        type:
+          type: string
+          enum: [thought, action, observation, complete, error]
+        content:
+          type: string
+        cycle:
+          type: integer
+        createdAt:
+          type: string
+    RunStats:
+      type: object
+      required: [totalRuns, completedRuns, failedRuns, runningRuns, totalSteps]
+      properties:
+        totalRuns:
+          type: integer
+        completedRuns:
+          type: integer
+        failedRuns:
+          type: integer
+        runningRuns:
+          type: integer
+        totalSteps:
+          type: integer
